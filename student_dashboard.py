@@ -45,7 +45,7 @@ class StudentDashboard(QtWidgets.QWidget):
             ('Take Exams', 'Take available exams', self.show_exams),
             ('My Results', 'View your exam results', self.show_results),
             ('Profile', 'Update your information', self.show_profile),
-            ('Resources', 'Access study materials', None)
+            ('Resources', 'Access study materials', self.show_resources)
         ]
 
         for i, (title, desc, action) in enumerate(actions):
@@ -622,5 +622,96 @@ class StudentDashboard(QtWidgets.QWidget):
             msg.setIcon(QtWidgets.QMessageBox.Icon.Critical)
             msg.exec()
 
+    def show_resources(self):
+        # Create a new widget to display resources
+        self.resources_widget = QtWidgets.QWidget()
+        resources_layout = QtWidgets.QVBoxLayout(self.resources_widget)
 
+        # Add header with back button
+        header = QtWidgets.QHBoxLayout()
+        title = QtWidgets.QLabel('Study Resources')
+        title.setStyleSheet(COMMON_STYLES['title_label'])
+
+        back_btn = QtWidgets.QPushButton('Back to Dashboard')
+        back_btn.setStyleSheet(COMMON_STYLES['secondary_button'])
+        back_btn.clicked.connect(lambda: self.main_window.stackedWidget.setCurrentWidget(self))
+
+        header.addWidget(title)
+        header.addStretch()
+        header.addWidget(back_btn)
+        resources_layout.addLayout(header)
+
+        # Add a container widget for the resources list
+        self.resources_container = QtWidgets.QWidget()
+        self.resources_container_layout = QtWidgets.QVBoxLayout(self.resources_container)
+        resources_layout.addWidget(self.resources_container)
+
+        # Load resources
+        self.load_resources()
+
+        resources_layout.addStretch()
+        self.main_window.stackedWidget.addWidget(self.resources_widget)
+        self.main_window.stackedWidget.setCurrentWidget(self.resources_widget)
+
+    def load_resources(self):
+        # Clear any existing content
+        while self.resources_container_layout.count():
+            item = self.resources_container_layout.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+
+        try:
+            supabase = create_connection()
+            if not supabase:
+                raise Exception("Failed to connect to Supabase")
+
+            # Fetch resources from the database
+            resources_response = supabase.table('resources') \
+                .select('title, description, link') \
+                .execute()
+
+            if not resources_response.data:
+                no_resources_label = QtWidgets.QLabel("No resources available.")
+                no_resources_label.setStyleSheet("font-size: 16px; color: #666; margin: 20px;")
+                no_resources_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+                self.resources_container_layout.addWidget(no_resources_label)
+                return
+
+            # Display each resource
+            for resource in resources_response.data:
+                resource_card = QtWidgets.QWidget()
+                resource_card.setStyleSheet('''
+                    QWidget {
+                        background: white;
+                        border-radius: 10px;
+                        padding: 15px;
+                        margin: 5px;
+                        border: 1px solid #E0E0E0;
+                    }
+                ''')
+                card_layout = QtWidgets.QVBoxLayout(resource_card)
+
+                title_label = QtWidgets.QLabel(resource['title'])
+                title_label.setStyleSheet("font-size: 14px; font-weight: bold; color: #333;")
+
+                description_label = QtWidgets.QLabel(resource['description'])
+                description_label.setStyleSheet("font-size: 13px; color: #666;")
+
+                link_btn = QtWidgets.QPushButton('Open Resource')
+                link_btn.setStyleSheet(COMMON_STYLES['primary_button'])
+                link_btn.clicked.connect(lambda _, url=resource['link']: QtGui.QDesktopServices.openUrl(QtCore.QUrl(url)))
+
+                card_layout.addWidget(title_label)
+                card_layout.addWidget(description_label)
+                card_layout.addWidget(link_btn)
+
+                self.resources_container_layout.addWidget(resource_card)
+
+        except Exception as e:
+            msg = QtWidgets.QMessageBox()
+            msg.setStyleSheet(COMMON_STYLES['message_box'])
+            msg.setWindowTitle("Error")
+            msg.setText(str(e))
+            msg.setIcon(QtWidgets.QMessageBox.Icon.Critical)
+            msg.exec()
 
