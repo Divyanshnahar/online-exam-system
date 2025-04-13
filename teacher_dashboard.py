@@ -1,7 +1,7 @@
 from PyQt6 import QtWidgets, QtCore
 from styles import COMMON_STYLES
 from exam_creation import ExamCreation
-
+from supabase_connection import create_connection
 class TeacherDashboard(QtWidgets.QWidget):
     def __init__(self, main_window):
         super().__init__()
@@ -108,8 +108,23 @@ class TeacherDashboard(QtWidgets.QWidget):
             action_layout.addWidget(title_label)
             action_layout.addWidget(desc_label)
 
-            if title == 'Create Exam':
-                action_widget.mouseReleaseEvent = lambda _, t=title: self.handle_action(t)
+            def make_handler(t):
+                def handler(_):
+                    if t == 'Create Exam':
+                        self.handle_action(t)
+                    elif t == 'View Exams':
+                        # None
+                        self.manage_existing_exam()
+                    elif t == 'View Results':
+                        # None
+                        self.check_student_result()
+                    elif t == 'Manage Students':
+                        # None
+                        self.view_student()
+                return handler
+
+            action_widget.mouseReleaseEvent = make_handler(title)
+
 
             row = i // 2
             col = i % 2
@@ -123,3 +138,94 @@ class TeacherDashboard(QtWidgets.QWidget):
         self.main_window.current_user = None
         self.main_window.current_user_type = None
         self.main_window.stackedWidget.setCurrentWidget(self.main_window.login_page)
+    
+
+    def manage_existing_exam(self):
+        try:
+            supabase = create_connection()
+            if not supabase:
+                raise Exception("Failed to connect to Supabase")
+
+            response = supabase.table('exams') \
+                .select('id, name, status, exam_date, start_time, end_time') \
+                .eq('teacher_username', self.main_window.current_user) \
+                .execute()
+
+            data = response.data
+            if not data:
+                QtWidgets.QMessageBox.information(self, "No Exams", "You haven't created any exams yet.")
+                return
+
+            message = "Your Exams:\n\n"
+            for exam in data:
+                message += f"ID: {exam['id']}, Name: {exam['name']}, Status: {exam['status']}, Date: {exam['exam_date']}\n"
+
+            QtWidgets.QMessageBox.information(self, "Exams", message)
+
+        except Exception as e:
+            QtWidgets.QMessageBox.critical(self, "Error", f"Failed to fetch exams:\n{e}")
+
+    def check_student_result(self):
+        try:
+            supabase = create_connection()
+            if not supabase:
+                raise Exception("Failed to connect to Supabase")
+
+            # Step 1: Get exams created by the teacher
+            exams_response = supabase.table('exams') \
+                .select('id, name') \
+                .eq('teacher_username', self.main_window.current_user) \
+                .execute()
+            
+            exam_ids = [e['id'] for e in exams_response.data]
+            exam_names = {e['id']: e['name'] for e in exams_response.data}
+
+            if not exam_ids:
+                QtWidgets.QMessageBox.information(self, "No Results", "You haven't created any exams yet.")
+                return
+
+            # Step 2: Fetch results for those exams
+            results_response = supabase.table('exam_results') \
+                .select('exam_id, student_username, score') \
+                .in_('exam_id', exam_ids) \
+                .execute()
+
+            if not results_response.data:
+                QtWidgets.QMessageBox.information(self, "No Results", "No students have submitted results yet.")
+                return
+
+            message = "Student Results:\n\n"
+            for r in results_response.data:
+                exam_name = exam_names.get(r['exam_id'], 'Unknown')
+                message += f"Exam: {exam_name} | Student: {r['student_username']} | Score: {r['score']}\n"
+
+            QtWidgets.QMessageBox.information(self, "Results", message)
+
+        except Exception as e:
+            QtWidgets.QMessageBox.critical(self, "Error", f"Failed to fetch results:\n{e}")
+
+
+
+    def view_student(self):
+        try:
+            supabase = create_connection()
+            if not supabase:
+                raise Exception("Failed to connect to Supabase")
+
+            response = supabase.table('users') \
+                .select('username') \
+                .eq('user_type', 'Student') \
+                .execute()
+
+            if not response.data:
+                QtWidgets.QMessageBox.information(self, "No Students", "No students found in the system.")
+                return
+
+            message = "Registered Students:\n\n"
+            for user in response.data:
+                message += f"{user['username']}\n"
+
+            QtWidgets.QMessageBox.information(self, "Students", message)
+
+        except Exception as e:
+            QtWidgets.QMessageBox.critical(self, "Error", f"Failed to fetch students:\n{e}")
