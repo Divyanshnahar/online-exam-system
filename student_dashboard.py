@@ -571,7 +571,7 @@ class StudentDashboard(QtWidgets.QWidget):
         profile_layout.addWidget(self.profile_container)
 
         # Load profile information
-        #self.load_profile()..................................................................
+        self.load_profile()
 
         profile_layout.addStretch()
         self.main_window.stackedWidget.addWidget(self.profile_widget)
@@ -589,10 +589,11 @@ class StudentDashboard(QtWidgets.QWidget):
             if not supabase:
                 raise Exception("Failed to connect to Supabase")
 
-            # Fetch profile information for the current student
-            profile_response = supabase.table('students') \
-                .select('username, full_name, email, phone, registration_date') \
+            # Fetch profile information for the current user
+            profile_response = supabase.table('users') \
+                .select('username, user_type') \
                 .eq('username', self.main_window.current_user) \
+                .single() \
                 .execute()
 
             if not profile_response.data:
@@ -602,29 +603,16 @@ class StudentDashboard(QtWidgets.QWidget):
                 self.profile_container_layout.addWidget(no_profile_label)
                 return
 
-            # Display profile information
-            profile_data = profile_response.data[0]
+            profile_data = profile_response.data
 
             username_label = QtWidgets.QLabel(f"Username: {profile_data['username']}")
             username_label.setStyleSheet("font-size: 14px; font-weight: bold; color: #333;")
 
-            full_name_label = QtWidgets.QLabel(f"Full Name: {profile_data['full_name']}")
-            full_name_label.setStyleSheet("font-size: 14px; color: #666;")
-
-            email_label = QtWidgets.QLabel(f"Email: {profile_data['email']}")
-            email_label.setStyleSheet("font-size: 14px; color: #666;")
-
-            phone_label = QtWidgets.QLabel(f"Phone: {profile_data['phone']}")
-            phone_label.setStyleSheet("font-size: 14px; color: #666;")
-
-            registration_date_label = QtWidgets.QLabel(f"Registration Date: {profile_data['registration_date']}")
-            registration_date_label.setStyleSheet("font-size: 14px; color: #666;")
+            user_type_label = QtWidgets.QLabel(f"User Type: {profile_data['user_type']}")
+            user_type_label.setStyleSheet("font-size: 14px; color: #666;")
 
             self.profile_container_layout.addWidget(username_label)
-            self.profile_container_layout.addWidget(full_name_label)
-            self.profile_container_layout.addWidget(email_label)
-            self.profile_container_layout.addWidget(phone_label)
-            self.profile_container_layout.addWidget(registration_date_label)
+            self.profile_container_layout.addWidget(user_type_label)
 
         except Exception as e:
             msg = QtWidgets.QMessageBox()
