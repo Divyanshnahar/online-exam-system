@@ -140,6 +140,17 @@ class TeacherDashboard(QtWidgets.QWidget):
         self.main_window.stackedWidget.setCurrentWidget(self.main_window.login_page)
     
 
+
+
+
+
+
+
+
+
+
+
+
     def manage_existing_exam(self):
         try:
             supabase = create_connection()
