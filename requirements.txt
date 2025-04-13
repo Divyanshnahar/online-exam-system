@@ -1,0 +1,6 @@
+PyQt6==6.5.2
+python-dotenv==1.0.0
+supabase==1.0.3
+mysql-connector-python==8.1.0  # Keep for backward compatibility
+python-dateutil==2.8.2
+requests==2.31.0 
