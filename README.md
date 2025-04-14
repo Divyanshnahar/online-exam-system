@@ -84,6 +84,11 @@ CREATE TABLE student_answers (
     CONSTRAINT fk_question_id FOREIGN KEY (question_id) REFERENCES questions(id),
     CONSTRAINT fk_student_username_answers FOREIGN KEY (student_username) REFERENCES users(username)
 );
+CREATE TABLE resources (
+    title BIGINT PRIMARY KEY,
+    description TEXT,
+    link TEXT
+);
 ```
 
 5. Run the application:
