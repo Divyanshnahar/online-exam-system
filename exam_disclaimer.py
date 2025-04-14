@@ -57,7 +57,7 @@ class ExamDisclaimerPage(QtWidgets.QWidget):
         disclaimer_layout = QtWidgets.QVBoxLayout(disclaimer_content)
         
         rules_header = QtWidgets.QLabel("Exam Rules and Requirements:")
-        rules_header.setStyleSheet("font-size: 16px; font-weight: bold; margin-top: 10px;")
+        rules_header.setStyleSheet("font-size: 16px; font-weight: bold; margin-top: 10px;color: black;")
         disclaimer_layout.addWidget(rules_header)
         
         requirements = [
@@ -74,11 +74,11 @@ class ExamDisclaimerPage(QtWidgets.QWidget):
         for i, req in enumerate(requirements):
             req_label = QtWidgets.QLabel(f"{i+1}. {req}")
             req_label.setWordWrap(True)
-            req_label.setStyleSheet("font-size: 14px; margin: 5px 0px;")
+            req_label.setStyleSheet("font-size: 14px; margin: 5px 0px;color: black;")
             disclaimer_layout.addWidget(req_label)
         
         privacy_header = QtWidgets.QLabel("Privacy Information:")
-        privacy_header.setStyleSheet("font-size: 16px; font-weight: bold; margin-top: 15px;")
+        privacy_header.setStyleSheet("font-size: 16px; font-weight: bold; margin-top: 15px;color: black;")
         disclaimer_layout.addWidget(privacy_header)
         
         privacy_text = QtWidgets.QLabel(
@@ -87,7 +87,7 @@ class ExamDisclaimerPage(QtWidgets.QWidget):
             "Only proctoring alerts and test results will be recorded in the system."
         )
         privacy_text.setWordWrap(True)
-        privacy_text.setStyleSheet("font-size: 14px; margin: 5px 0px;")
+        privacy_text.setStyleSheet("font-size: 14px; margin: 5px 0px;color: black;")
         disclaimer_layout.addWidget(privacy_text)
         
         disclaimer_layout.addStretch()
@@ -96,7 +96,7 @@ class ExamDisclaimerPage(QtWidgets.QWidget):
         
         # Checkbox for agreement
         self.agreement_checkbox = QtWidgets.QCheckBox("I understand and agree to the proctoring requirements")
-        self.agreement_checkbox.setStyleSheet("font-size: 14px; margin-top: 10px;")
+        self.agreement_checkbox.setStyleSheet("font-size: 14px; margin-top: 10px;color: black;")
         self.agreement_checkbox.stateChanged.connect(self.toggle_continue_button)
         layout.addWidget(self.agreement_checkbox)
         

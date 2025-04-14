@@ -47,7 +47,7 @@ class ProctoredExamTaking(QtWidgets.QWidget):
             # Initialize gaze detection if available
             if GAZE_DETECTION_AVAILABLE:
                 try:
-                    self.gaze_detector = GazeDetection(timeout_seconds=30)  # 30 seconds of looking away is a violation
+                    self.gaze_detector = GazeDetection(timeout_seconds=15)  # 15 seconds of looking away is a violation
                     self.camera_thread = None
                     self.is_camera_running = False
                     
@@ -387,6 +387,9 @@ class ProctoredExamTaking(QtWidgets.QWidget):
             # Update the violations label
             self.violations_label.setText(f"Violations: {self.violations_count}/{self.MAX_VIOLATIONS}")
             
+            # Log the violation
+            logging.warning(f"Proctoring violation recorded: {reason}. Count: {self.violations_count}/{self.MAX_VIOLATIONS}")
+            
             if self.violations_count >= self.MAX_VIOLATIONS:
                 self.handle_max_violations()
             else:
@@ -399,15 +402,17 @@ class ProctoredExamTaking(QtWidgets.QWidget):
         if not GAZE_DETECTION_AVAILABLE:
             return
             
-        warning = QtWidgets.QMessageBox(self)
-        warning.setWindowTitle("Proctoring Violation")
-        warning.setText(f"Proctoring Violation Detected: {reason}")
-        warning.setInformativeText(
-            f"This is violation {self.violations_count} of {self.MAX_VIOLATIONS}.\n"
-            f"Your exam may be terminated if violations continue."
-        )
-        warning.setIcon(QtWidgets.QMessageBox.Icon.Warning)
-        warning.exec()
+        # Create a warning message box
+        msg = QtWidgets.QMessageBox(self)
+        msg.setIcon(QtWidgets.QMessageBox.Icon.Warning)
+        msg.setWindowTitle("Proctoring Violation")
+        msg.setText(f"Proctoring violation detected: {reason}")
+        msg.setInformativeText(f"You have {self.violations_count} out of {self.MAX_VIOLATIONS} allowed violations.\n\nIf you reach {self.MAX_VIOLATIONS} violations, your exam will be terminated automatically and you will receive a score of zero.")
+        msg.setStandardButtons(QtWidgets.QMessageBox.StandardButton.Ok)
+        msg.setStyleSheet("color: black;")  # Ensure text is visible
+        
+        # Show the message box
+        msg.exec()
     
     def handle_max_violations(self):
         """Handle reaching the maximum number of violations"""
@@ -415,18 +420,59 @@ class ProctoredExamTaking(QtWidgets.QWidget):
         if not GAZE_DETECTION_AVAILABLE:
             return
             
-        # Show warning message
+        # Stop the camera
+        self.stop_camera()
+        
+        # Show a message box
         msg = QtWidgets.QMessageBox(self)
-        msg.setWindowTitle("Exam Terminated")
-        msg.setText("Maximum Proctoring Violations Reached")
-        msg.setInformativeText(
-            "Your exam has been terminated due to too many proctoring violations.\n"
-            "The system detected several instances where exam rules were not followed."
-        )
         msg.setIcon(QtWidgets.QMessageBox.Icon.Critical)
+        msg.setWindowTitle("Exam Terminated")
+        msg.setText("Maximum proctoring violations reached")
+        msg.setInformativeText("Your exam has been terminated due to too many proctoring violations. You will receive a score of zero for this exam.")
+        msg.setStandardButtons(QtWidgets.QMessageBox.StandardButton.Ok)
+        msg.setStyleSheet("color: black;")  # Ensure text is visible
+        
+        # Show the message box
         msg.exec()
         
-        # Clean up and go back to dashboard
-        self.stop_camera()
-        self.exit_fullscreen()
-        self.main_window.stackedWidget.setCurrentWidget(self.main_window.student_dashboard) 
+        # Submit a zero score for the exam
+        self.submit_zero_score()
+        
+        # Return to the dashboard
+        from dashboard import Dashboard
+        dashboard = Dashboard(self.main_window)
+        self.main_window.stackedWidget.addWidget(dashboard)
+        self.main_window.stackedWidget.setCurrentWidget(dashboard)
+    
+    def submit_zero_score(self):
+        """Submit a score of zero for the exam due to proctoring violations"""
+        try:
+            from supabase_connection import create_connection
+            supabase = create_connection()
+            
+            # Get the current user
+            student_username = self.main_window.current_user
+            
+            # Submit a zero score
+            response = supabase.table('exam_results').insert({
+                'exam_id': self.exam_id,
+                'student_username': student_username,
+                'score': 0,
+                'max_score': 100,  # Assuming max score is 100
+                'submission_time': time.strftime('%Y-%m-%d %H:%M:%S'),
+                'violation_termination': True  # Flag to indicate termination due to violations
+            }).execute()
+            
+            logging.info(f"Submitted zero score for {student_username} due to proctoring violations")
+            
+        except Exception as e:
+            logging.error(f"Failed to submit zero score: {e}")
+            # Show error message
+            msg = QtWidgets.QMessageBox(self)
+            msg.setIcon(QtWidgets.QMessageBox.Icon.Critical)
+            msg.setWindowTitle("Error")
+            msg.setText("Failed to submit exam result")
+            msg.setInformativeText(f"Error: {str(e)}")
+            msg.setStandardButtons(QtWidgets.QMessageBox.StandardButton.Ok)
+            msg.setStyleSheet("color: black;")  # Ensure text is visible
+            msg.exec()
