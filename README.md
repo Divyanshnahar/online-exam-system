@@ -94,6 +94,7 @@ CREATE TABLE resources (
 5. Run the application:
    ```
    python online_exam_system/main.py
+   python3 online_exam_system/main.py
    ```
 
 ## Features
