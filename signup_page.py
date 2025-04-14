@@ -1,4 +1,4 @@
-from PyQt6 import QtCore, QtWidgets
+from PyQt6 import QtCore, QtWidgets, QtGui
 import hashlib
 from db_connection import create_connection
 from styles import COMMON_STYLES
@@ -20,15 +20,34 @@ class SignupPage(QtWidgets.QWidget):
         center_layout.setContentsMargins(0, 40, 0, 40)
         center_layout.setSpacing(15)
 
-        # Logo or System Name
-        logo_label = QtWidgets.QLabel('Online Exam System', self)
-        logo_label.setStyleSheet('''
-            font-size: 24px;
-            color: #6C63FF;
-            font-weight: bold;
-        ''')
-        logo_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-        center_layout.addWidget(logo_label)
+        # Logo display
+        logo_container = QtWidgets.QWidget()
+        logo_layout = QtWidgets.QVBoxLayout(logo_container)
+        logo_layout.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        
+        # Use the logo from main window if available
+        if hasattr(self.main_window, 'logo_pixmap') and not self.main_window.logo_pixmap.isNull():
+            logo_label = QtWidgets.QLabel()
+            logo_label.setPixmap(self.main_window.logo_pixmap.scaled(
+                300, 150, 
+                QtCore.Qt.AspectRatioMode.KeepAspectRatio, 
+                QtCore.Qt.TransformationMode.SmoothTransformation
+            ))
+            logo_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+            logo_layout.addWidget(logo_label)
+        else:
+            # Fallback to text logo
+            logo_label = QtWidgets.QLabel('Proctor Prime', self)
+            logo_label.setStyleSheet('''
+                font-size: 32px;
+                color: #6C63FF;
+                font-weight: bold;
+                font-family: 'Script', cursive;
+            ''')
+            logo_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+            logo_layout.addWidget(logo_label)
+        
+        center_layout.addWidget(logo_container)
 
         # Title
         title_label = QtWidgets.QLabel('Create Account', self)

@@ -1024,6 +1024,10 @@ class ExamCreation(QtWidgets.QWidget):
         self.current_question = 1
         self.update_progress_label()
         
+        # If there's only one question, show the finish button right away
+        if self.total_questions == 1:
+            self.finish_btn.show()
+        
         # Calculate total duration in seconds instead of decimal minutes
         total_duration_seconds = (self.duration_hours.value() * 3600) + (self.duration_minutes.value() * 60) + self.duration_seconds.value()
         

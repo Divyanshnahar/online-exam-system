@@ -2,7 +2,9 @@ from PyQt6 import QtCore, QtWidgets
 from styles import COMMON_STYLES
 from supabase_connection import create_connection
 from exam_taking import ExamTaking
+from exam_disclaimer import ExamDisclaimerPage
 import datetime
+import logging
 
 class StudentDashboard(QtWidgets.QWidget):
     def __init__(self, main_window):
@@ -350,36 +352,26 @@ class StudentDashboard(QtWidgets.QWidget):
         
         card_layout.addLayout(header_layout)
         
-        # Format duration correctly based on its type
-        if isinstance(duration, (int, float)):
-            # Handle cases where duration is stored in seconds instead of minutes
-            if duration > 300:  # If duration is larger than 5 minutes in seconds
-                hours = int(duration // 3600)
-                minutes = int((duration % 3600) // 60)
-                seconds = int(duration % 60)
-                
-                if hours > 0:
-                    duration_text = f"Duration: {hours}h {minutes}m {seconds}s"
-                elif minutes > 0:
-                    duration_text = f"Duration: {minutes}m {seconds}s"
-                else:
-                    duration_text = f"Duration: {seconds}s"
-            else:
-                # Legacy format where duration was stored as minutes
-                duration_text = f"Duration: {duration} minutes" 
-        else:
-            # If it's a timedelta object, format appropriately
-            total_seconds = duration.total_seconds()
-            hours = int(total_seconds // 3600)
-            minutes = int((total_seconds % 3600) // 60)
-            seconds = int(total_seconds % 60)
+        # Format duration correctly based on its type - always treat as seconds
+        try:
+            # Convert to integer seconds if it's not already
+            duration_seconds = int(duration)
             
+            # Calculate hours, minutes, seconds
+            hours = duration_seconds // 3600
+            minutes = (duration_seconds % 3600) // 60
+            seconds = duration_seconds % 60
+            
+            # Format the duration text
             if hours > 0:
                 duration_text = f"Duration: {hours}h {minutes}m {seconds}s"
             elif minutes > 0:
                 duration_text = f"Duration: {minutes}m {seconds}s"
             else:
                 duration_text = f"Duration: {seconds}s"
+        except:
+            # Fallback in case of errors
+            duration_text = f"Duration: {duration} seconds"
             
         duration_label = QtWidgets.QLabel(duration_text)
         duration_label.setStyleSheet("color: #666; font-size: 14px;")
@@ -429,10 +421,10 @@ class StudentDashboard(QtWidgets.QWidget):
         return exam_card
 
     def take_exam(self, exam_id):
-        # Navigate to the exam-taking page
-        exam_taking_widget = ExamTaking(self.main_window, exam_id)
-        self.main_window.stackedWidget.addWidget(exam_taking_widget)
-        self.main_window.stackedWidget.setCurrentWidget(exam_taking_widget)
+        # Navigate to the disclaimer page first instead of directly to exam taking
+        disclaimer_page = ExamDisclaimerPage(self.main_window, exam_id)
+        self.main_window.stackedWidget.addWidget(disclaimer_page)
+        self.main_window.stackedWidget.setCurrentWidget(disclaimer_page)
 
     def show_results(self):
         # Create a new widget to display results
@@ -479,7 +471,7 @@ class StudentDashboard(QtWidgets.QWidget):
 
             # Fetch exam results for the current student
             results_response = supabase.table('exam_results') \
-                .select('exam_id, score') \
+                .select('exam_id, score, completed_at') \
                 .eq('student_username', self.main_window.current_user) \
                 .execute()
 
@@ -490,17 +482,31 @@ class StudentDashboard(QtWidgets.QWidget):
                 self.results_container_layout.addWidget(no_results_label)
                 return
 
+            # Create section headers
+            completed_label = QtWidgets.QLabel("Completed Exams")
+            completed_label.setStyleSheet("font-size: 18px; font-weight: bold; color: #6C63FF; margin-top: 10px;")
+            
+            in_progress_label = QtWidgets.QLabel("In-Progress Exams")
+            in_progress_label.setStyleSheet("font-size: 18px; font-weight: bold; color: #FF9800; margin-top: 20px;")
+            
+            # Group results by status
+            completed_exams = []
+            in_progress_exams = []
+            
             for result in results_response.data:
                 exam_id = result['exam_id']
                 score = result['score']
-
-                # Fetch exam date from exams table
+                completed_at = result['completed_at']
+                
+                # Fetch exam date and name from exams table
                 exam_data = supabase.table('exams') \
-                    .select('exam_date') \
+                    .select('exam_date, name') \
                     .eq('id', exam_id) \
                     .single() \
                     .execute()
-                exam_date = exam_data.data['exam_date'] if exam_data.data else "Unknown"
+                
+                exam_date = exam_data.data['exam_date'] if exam_data.data and 'exam_date' in exam_data.data else "Unknown"
+                exam_name = exam_data.data['name'] if exam_data.data and 'name' in exam_data.data else f"Exam #{exam_id}"
 
                 # Count total number of questions for the exam
                 questions_data = supabase.table('questions') \
@@ -508,36 +514,52 @@ class StudentDashboard(QtWidgets.QWidget):
                     .eq('exam_id', exam_id) \
                     .execute()
                 total_marks = len(questions_data.data) if questions_data.data else 0
-
-                # Create result card
-                result_card = QtWidgets.QWidget()
-                result_card.setStyleSheet('''
-                    QWidget {
-                        background: white;
-                        border-radius: 10px;
-                        padding: 15px;
-                        margin: 5px;
-                        border: 1px solid #E0E0E0;
-                    }
-                ''')
-                card_layout = QtWidgets.QVBoxLayout(result_card)
-
-                exam_label = QtWidgets.QLabel(f"Exam ID: {exam_id}")
-                exam_label.setStyleSheet("font-size: 14px; font-weight: bold; color: #333;")
-
-                score_label = QtWidgets.QLabel(f"Score: {score}/{total_marks}")
-                score_label.setStyleSheet("font-size: 14px; color: #666;")
-
-                date_label = QtWidgets.QLabel(f"Date: {exam_date}")
-                date_label.setStyleSheet("font-size: 14px; color: #666;")
-
-                card_layout.addWidget(exam_label)
-                card_layout.addWidget(score_label)
-                card_layout.addWidget(date_label)
-
-                self.results_container_layout.addWidget(result_card)
+                
+                # Log information for debugging
+                logging.debug(f"Exam result: id={exam_id}, name={exam_name}, score={score}/{total_marks}, completed={completed_at}")
+                
+                # Look at completed_at timestamp to determine if exam is completed
+                if completed_at:
+                    # For a more accurate check, we could add additional logic here
+                    # such as comparing with end time of the exam
+                    completed_exams.append((exam_id, exam_name, score, total_marks, exam_date, completed_at))
+                else:
+                    in_progress_exams.append((exam_id, exam_name, score, total_marks, exam_date))
+        
+            # Add container for scrollable content
+            scroll_area = QtWidgets.QScrollArea()
+            scroll_area.setWidgetResizable(True)
+            scroll_content = QtWidgets.QWidget()
+            scroll_layout = QtWidgets.QVBoxLayout(scroll_content)
+            scroll_layout.setSpacing(10)
+            
+            # Display completed exams
+            if completed_exams:
+                scroll_layout.addWidget(completed_label)
+                
+                for exam_id, exam_name, score, total_marks, exam_date, completed_at in completed_exams:
+                    result_card = self.create_result_card(exam_id, exam_name, score, total_marks, exam_date, True, completed_at)
+                    scroll_layout.addWidget(result_card)
+            
+            # Display in-progress exams
+            if in_progress_exams:
+                scroll_layout.addWidget(in_progress_label)
+                
+                for exam_id, exam_name, score, total_marks, exam_date in in_progress_exams:
+                    result_card = self.create_result_card(exam_id, exam_name, score, total_marks, exam_date, False)
+                    scroll_layout.addWidget(result_card)
+            
+            if not (completed_exams or in_progress_exams):
+                no_results_label = QtWidgets.QLabel("No results available.")
+                no_results_label.setStyleSheet("font-size: 16px; color: #666; margin: 20px;")
+                no_results_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+                scroll_layout.addWidget(no_results_label)
+            
+            scroll_area.setWidget(scroll_content)
+            self.results_container_layout.addWidget(scroll_area)
 
         except Exception as e:
+            logging.error(f"Error loading results: {e}")
             msg = QtWidgets.QMessageBox()
             msg.setStyleSheet(COMMON_STYLES['message_box'])
             msg.setWindowTitle("Error")
@@ -545,6 +567,76 @@ class StudentDashboard(QtWidgets.QWidget):
             msg.setIcon(QtWidgets.QMessageBox.Icon.Critical)
             msg.exec()
 
+    def create_result_card(self, exam_id, exam_name, score, total_marks, exam_date, is_completed, completed_at=None):
+        result_card = QtWidgets.QWidget()
+        
+        # Style based on completion status
+        if is_completed:
+            result_card.setStyleSheet('''
+                QWidget {
+                    background: #F0F8FF;
+                    border-radius: 10px;
+                    padding: 15px;
+                    margin: 5px;
+                    border: 1px solid #6C63FF;
+                }
+            ''')
+            status_text = "COMPLETED"
+            status_color = "#4CAF50"  # Green
+        else:
+            result_card.setStyleSheet('''
+                QWidget {
+                    background: #FFF8E1;
+                    border-radius: 10px;
+                    padding: 15px;
+                    margin: 5px;
+                    border: 1px solid #FF9800;
+                }
+            ''')
+            status_text = "IN PROGRESS"
+            status_color = "#FF9800"  # Orange
+        
+        card_layout = QtWidgets.QVBoxLayout(result_card)
+        
+        # Header with name and status
+        header_layout = QtWidgets.QHBoxLayout()
+        
+        name_label = QtWidgets.QLabel(exam_name)
+        name_label.setStyleSheet("font-size: 16px; font-weight: bold; color: #333;")
+        
+        status_label = QtWidgets.QLabel(status_text)
+        status_label.setStyleSheet(f"color: {status_color}; font-weight: bold; font-size: 12px;")
+        
+        header_layout.addWidget(name_label)
+        header_layout.addStretch()
+        header_layout.addWidget(status_label)
+        
+        card_layout.addLayout(header_layout)
+        
+        # Score and date info
+        score_label = QtWidgets.QLabel(f"Score: {score}/{total_marks}")
+        score_label.setStyleSheet("font-size: 14px; color: #666;")
+        
+        date_label = QtWidgets.QLabel(f"Exam Date: {exam_date}")
+        date_label.setStyleSheet("font-size: 14px; color: #666;")
+        
+        card_layout.addWidget(score_label)
+        card_layout.addWidget(date_label)
+        
+        # Add completion time if available
+        if completed_at:
+            try:
+                # Convert ISO format to readable format
+                completed_datetime = datetime.datetime.fromisoformat(completed_at)
+                formatted_time = completed_datetime.strftime("%Y-%m-%d %H:%M:%S")
+                completed_label = QtWidgets.QLabel(f"Completed: {formatted_time}")
+                completed_label.setStyleSheet("font-size: 14px; color: #666; font-style: italic;")
+                card_layout.addWidget(completed_label)
+            except:
+                # In case of formatting errors
+                pass
+        
+        return result_card
 
     def show_profile(self):
         # Create a new widget to display profile information
@@ -699,7 +791,7 @@ class StudentDashboard(QtWidgets.QWidget):
 
                 link_btn = QtWidgets.QPushButton('Open Resource')
                 link_btn.setStyleSheet(COMMON_STYLES['primary_button'])
-                link_btn.clicked.connect(lambda _, url=resource['link']: QtGui.QDesktopServices.openUrl(QtCore.QUrl(url)))
+                link_btn.clicked.connect(lambda _, url=resource['link']: QtCore.QDesktopServices.openUrl(QtCore.QUrl(url)))
 
                 card_layout.addWidget(title_label)
                 card_layout.addWidget(description_label)

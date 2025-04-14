@@ -32,14 +32,14 @@ class AdminDashboard(QtWidgets.QWidget):
         nav_panel = QtWidgets.QVBoxLayout()
         manage_users_btn = QtWidgets.QPushButton('Manage Users', self)
         manage_teachers_btn = QtWidgets.QPushButton('Manage Teachers', self)
-        system_settings_btn = QtWidgets.QPushButton('System Settings', self)
-        view_logs_btn = QtWidgets.QPushButton('View Logs', self)
+        # system_settings_btn = QtWidgets.QPushButton('System Settings', self)
+        # view_logs_btn = QtWidgets.QPushButton('View Logs', self)
         
         # Connect button actions
         manage_users_btn.clicked.connect(self.manage_users)
         manage_teachers_btn.clicked.connect(self.manage_teachers)
         
-        for btn in [manage_users_btn, manage_teachers_btn, system_settings_btn, view_logs_btn]:
+        for btn in [manage_users_btn, manage_teachers_btn]:
             btn.setStyleSheet(COMMON_STYLES['primary_button'])
             nav_panel.addWidget(btn)
         

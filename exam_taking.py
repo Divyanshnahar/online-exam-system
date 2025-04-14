@@ -42,10 +42,28 @@ class ExamTaking(QtWidgets.QWidget):
         # Question and options layout
         self.question_layout = QtWidgets.QVBoxLayout()
         self.question_layout.setSpacing(15)
-        self.main_layout.addLayout(self.question_layout)
+        
+        # Create a scroll area to ensure all content is visible
+        scroll_area = QtWidgets.QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setStyleSheet('''
+            QScrollArea {
+                border: none;
+                background-color: transparent;
+            }
+        ''')
+        
+        scroll_content = QtWidgets.QWidget()
+        scroll_content.setLayout(self.question_layout)
+        scroll_area.setWidget(scroll_content)
+        
+        self.main_layout.addWidget(scroll_area, 1)  # Add stretch factor to take available space
 
         # Navigation buttons
         self.nav_layout = QtWidgets.QHBoxLayout()
+        self.nav_layout.setContentsMargins(10, 20, 10, 10)  # Add more top margin
+        self.nav_layout.setSpacing(15)  # Increase spacing between buttons
+        
         self.prev_button = QtWidgets.QPushButton('Previous')
         self.prev_button.setStyleSheet('''
             QPushButton {
@@ -53,8 +71,9 @@ class ExamTaking(QtWidgets.QWidget):
                 border: 1px solid #6C63FF;
                 border-radius: 5px;
                 color: #6C63FF;
-                padding: 8px 15px;
+                padding: 10px 20px;
                 font-size: 14px;
+                min-width: 120px;
             }
             QPushButton:hover {
                 background-color: #6C63FF;
@@ -70,8 +89,9 @@ class ExamTaking(QtWidgets.QWidget):
                 border: 1px solid #6C63FF;
                 border-radius: 5px;
                 color: #6C63FF;
-                padding: 8px 15px;
+                padding: 10px 20px;
                 font-size: 14px;
+                min-width: 120px;
             }
             QPushButton:hover {
                 background-color: #6C63FF;
@@ -87,8 +107,9 @@ class ExamTaking(QtWidgets.QWidget):
                 border: none;
                 border-radius: 5px;
                 color: white;
-                padding: 8px 15px;
+                padding: 10px 20px;
                 font-size: 14px;
+                min-width: 120px;
             }
             QPushButton:hover {
                 background-color: #5952cc;
@@ -96,15 +117,21 @@ class ExamTaking(QtWidgets.QWidget):
         ''')
         self.submit_button.clicked.connect(self.submit_exam)
 
+        # Add spacers to better distribute buttons
+        self.nav_layout.addStretch(1)
         self.nav_layout.addWidget(self.prev_button)
+        self.nav_layout.addStretch(1)
         self.nav_layout.addWidget(self.next_button)
+        self.nav_layout.addStretch(1)
         self.nav_layout.addWidget(self.submit_button)
+        self.nav_layout.addStretch(1)
 
         self.main_layout.addLayout(self.nav_layout)
 
         # Progress indicator
         self.progress_label = QtWidgets.QLabel()
-        self.progress_label.setStyleSheet("color: #666; font-size: 14px; margin-top: 10px;")
+        self.progress_label.setStyleSheet("color: #666; font-size: 14px; margin-top: 10px; margin-bottom: 10px;")
+        self.progress_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)  # Center the progress text
         self.main_layout.addWidget(self.progress_label)
 
         # Fetch exam details including duration
@@ -142,21 +169,17 @@ class ExamTaking(QtWidgets.QWidget):
                 self.title_label.setText(exam_name)
                 self.exam_duration = duration
                 
-                # Handle both formats: if duration is large (>300), it's likely in seconds
-                # Otherwise it's the legacy format stored in minutes
-                if duration > 300:  # If duration is larger than 5 minutes in seconds
-                    self.remaining_time = duration  # Already in seconds
-                    hours = int(duration // 3600)
-                    minutes = int((duration % 3600) // 60)
-                    seconds = int(duration % 60)
-                    if hours > 0:
-                        logging.debug(f"Exam duration set to {hours}h {minutes}m {seconds}s")
-                    else:
-                        logging.debug(f"Exam duration set to {minutes}m {seconds}s")
+                # Fix duration handling - always treat duration as seconds
+                # Convert to proper time format for display
+                self.remaining_time = int(duration)  # Always use seconds
+                hours = int(self.remaining_time // 3600)
+                minutes = int((self.remaining_time % 3600) // 60)
+                seconds = int(self.remaining_time % 60)
+                
+                if hours > 0:
+                    logging.debug(f"Exam duration set to {hours}h {minutes}m {seconds}s")
                 else:
-                    # Legacy format: duration is in minutes
-                    self.remaining_time = duration * 60  # Convert minutes to seconds
-                    logging.debug(f"Exam duration set to {duration} minutes")
+                    logging.debug(f"Exam duration set to {minutes}m {seconds}s")
                 
                 self.update_timer_display()
             else:
@@ -203,13 +226,22 @@ class ExamTaking(QtWidgets.QWidget):
             response = supabase.table('questions') \
                 .select('id, question_text, option1, option2, option3, option4') \
                 .eq('exam_id', self.exam_id) \
+                .order('id') \
                 .execute()
                 
+            # Log details about questions to help debug duplication issues
+            logging.debug(f"Raw question data: {response.data}")
+            
             # Convert the response data to the expected format
             self.questions = [(q['id'], q['question_text'], q['option1'], q['option2'], q['option3'], q['option4']) 
                               for q in response.data]
                               
             logging.debug(f"Fetched {len(self.questions)} questions")
+            
+            # Alert if there are more questions than expected
+            if len(self.questions) > 1:
+                logging.warning(f"Multiple questions found for exam ID {self.exam_id}. This might indicate duplicate entries.")
+                
         except Exception as e:
             logging.error(f"Error fetching questions: {e}")
             msg = QtWidgets.QMessageBox()
@@ -231,7 +263,7 @@ class ExamTaking(QtWidgets.QWidget):
 
             # Display question
             question_container = QtWidgets.QWidget()
-            question_container.setStyleSheet("background-color: #F5F5FF; border-radius: 10px; padding: 15px;")
+            question_container.setStyleSheet("background-color: #F5F5FF; border-radius: 10px; padding: 15px; margin-bottom: 15px;")
             question_container_layout = QtWidgets.QVBoxLayout(question_container)
             
             question_num_label = QtWidgets.QLabel(f"Question {index + 1}:")
@@ -247,11 +279,12 @@ class ExamTaking(QtWidgets.QWidget):
 
             # Display options
             options_container = QtWidgets.QWidget()
-            options_container.setStyleSheet("background-color: white; border: 1px solid #E0E0E0; border-radius: 10px; padding: 15px;")
+            options_container.setStyleSheet("background-color: white; border: 1px solid #E0E0E0; border-radius: 10px; padding: 15px; margin-bottom: 15px;")
             options_layout = QtWidgets.QVBoxLayout(options_container)
+            options_layout.setSpacing(15)  # Increase spacing between options
             
             options_title = QtWidgets.QLabel("Select an answer:")
-            options_title.setStyleSheet('font-size: 14px; color: #666;')
+            options_title.setStyleSheet('font-size: 14px; color: #666; margin-bottom: 10px;')
             options_layout.addWidget(options_title)
             
             self.option_buttons = []
@@ -263,9 +296,20 @@ class ExamTaking(QtWidgets.QWidget):
             for i, option in enumerate(options):
                 if option:  # Ensure option is not None or empty
                     option_layout = QtWidgets.QHBoxLayout()
+                    option_layout.setContentsMargins(5, 5, 5, 5)  # Add padding around options
                     
                     radio_button = QtWidgets.QRadioButton()
-                    radio_button.setStyleSheet('font-size: 16px; color: #333;')
+                    radio_button.setStyleSheet('''
+                        QRadioButton {
+                            font-size: 16px;
+                            color: #333;
+                            spacing: 10px;
+                        }
+                        QRadioButton::indicator {
+                            width: 20px;
+                            height: 20px;
+                        }
+                    ''')
                     
                     # Add to button group for mutually exclusive selection
                     option_group.addButton(radio_button, i)
@@ -299,6 +343,102 @@ class ExamTaking(QtWidgets.QWidget):
     def save_answer(self, question_id, option_index):
         self.answers[question_id] = option_index
         logging.debug(f"Saved answer for question {question_id}: option {option_index}")
+        
+        # Update exam_results in real-time
+        try:
+            supabase = create_connection()
+            if not supabase:
+                raise Exception("Failed to connect to Supabase")
+            
+            # Get the correct answer to check if this response is correct
+            response = supabase.table('questions') \
+                .select('correct_answer, option1, option2, option3, option4') \
+                .eq('id', question_id) \
+                .execute()
+            
+            if response.data:
+                question = response.data[0]
+                correct_answer = question['correct_answer']
+                options = [question['option1'], question['option2'], question['option3'], question['option4']]
+                selected_option = options[option_index]
+                
+                # Fixed correct answer comparison logic - compare with the actual option text
+                # The correct_answer field stores the text, like "Option X", but we need to match with actual content
+                
+                # Convert from "Option X" format to index
+                option_index_map = {"Option 1": 0, "Option 2": 1, "Option 3": 2, "Option 4": 3}
+                if correct_answer in option_index_map:
+                    correct_index = option_index_map[correct_answer]
+                    correct_option_text = options[correct_index]
+                    is_correct = (selected_option == correct_option_text)
+                else:
+                    # Fallback to direct match (if correct_answer is stored as the actual text)
+                    is_correct = (selected_option == correct_answer)
+                
+                # Log comparison details to help debug
+                logging.debug(f"Answer comparison: selected='{selected_option}', correct='{correct_answer}', is_correct={is_correct}")
+                
+                # Check if this student has already answered this question
+                existing_answer = supabase.table('student_answers') \
+                    .select('id') \
+                    .eq('exam_id', self.exam_id) \
+                    .eq('question_id', question_id) \
+                    .eq('student_username', self.main_window.current_user) \
+                    .execute()
+                
+                if existing_answer.data:
+                    # Update existing answer
+                    supabase.table('student_answers') \
+                        .update({
+                            'selected_answer': selected_option,
+                            'is_correct': is_correct
+                        }) \
+                        .eq('id', existing_answer.data[0]['id']) \
+                        .execute()
+                else:
+                    # Create new answer
+                    supabase.table('student_answers').insert({
+                        'exam_id': self.exam_id,
+                        'question_id': question_id,
+                        'student_username': self.main_window.current_user,
+                        'selected_answer': selected_option,
+                        'is_correct': is_correct
+                    }).execute()
+                
+                # Count all correct answers so far to update the score
+                correct_count_response = supabase.table('student_answers') \
+                    .select('id') \
+                    .eq('exam_id', self.exam_id) \
+                    .eq('student_username', self.main_window.current_user) \
+                    .eq('is_correct', True) \
+                    .execute()
+                
+                correct_count = len(correct_count_response.data)
+                
+                # Check if there's an existing exam result
+                result_response = supabase.table('exam_results') \
+                    .select('id') \
+                    .eq('exam_id', self.exam_id) \
+                    .eq('student_username', self.main_window.current_user) \
+                    .execute()
+                
+                if result_response.data:
+                    # Update existing result with current score
+                    supabase.table('exam_results') \
+                        .update({'score': correct_count}) \
+                        .eq('id', result_response.data[0]['id']) \
+                        .execute()
+                else:
+                    # Create new result entry with initial score
+                    supabase.table('exam_results').insert({
+                        'exam_id': self.exam_id,
+                        'student_username': self.main_window.current_user,
+                        'score': correct_count
+                        # Don't set completed_at until the exam is fully submitted
+                    }).execute()
+        except Exception as e:
+            logging.error(f"Error updating exam result in real-time: {e}")
+            # Don't show error to user to avoid interrupting the exam experience
 
     def prev_question(self):
         if self.current_question_index > 0:
@@ -312,15 +452,16 @@ class ExamTaking(QtWidgets.QWidget):
 
     def submit_exam(self):
         try:
-            # Count correct answers
-            correct_count = 0
-            total_questions = len(self.questions)
-            
+            # Get current score from the database
             supabase = create_connection()
             if not supabase:
                 raise Exception("Failed to connect to Supabase")
             
-            # Get correct answers and save student answers
+            # Process any unanswered questions and ensure accurate score calculation
+            total_questions = len(self.questions)
+            correct_count = 0
+            
+            # Check all questions and answers
             for question_id, _, _, _, _, _ in self.questions:
                 if question_id in self.answers:
                     # Get the correct answer
@@ -334,35 +475,77 @@ class ExamTaking(QtWidgets.QWidget):
                         correct_answer = question['correct_answer']
                         options = [question['option1'], question['option2'], question['option3'], question['option4']]
                         selected_option = options[self.answers[question_id]]
-                        is_correct = (selected_option == correct_answer)
+                        
+                        # Fixed correct answer comparison logic
+                        option_index_map = {"Option 1": 0, "Option 2": 1, "Option 3": 2, "Option 4": 3}
+                        if correct_answer in option_index_map:
+                            correct_index = option_index_map[correct_answer]
+                            correct_option_text = options[correct_index]
+                            is_correct = (selected_option == correct_option_text)
+                        else:
+                            # Fallback to direct match (if correct_answer is stored as the actual text)
+                            is_correct = (selected_option == correct_answer)
                         
                         if is_correct:
                             correct_count += 1
                         
-                        # Save the student's answer
-                        supabase.table('student_answers').insert({
-                            'exam_id': self.exam_id,
-                            'question_id': question_id,
-                            'student_username': self.main_window.current_user,
-                            'selected_answer': selected_option,
-                            'is_correct': is_correct
-                        }).execute()
+                        # Log comparison details to help debug
+                        logging.debug(f"Submit check: selected='{selected_option}', correct='{correct_answer}', is_correct={is_correct}")
+                        
+                        # Ensure student's answer is saved
+                        # Check if this answer already exists
+                        existing_answer = supabase.table('student_answers') \
+                            .select('id') \
+                            .eq('exam_id', self.exam_id) \
+                            .eq('question_id', question_id) \
+                            .eq('student_username', self.main_window.current_user) \
+                            .execute()
+                        
+                        if not existing_answer.data:
+                            # Save only if not already saved
+                            supabase.table('student_answers').insert({
+                                'exam_id': self.exam_id,
+                                'question_id': question_id,
+                                'student_username': self.main_window.current_user,
+                                'selected_answer': selected_option,
+                                'is_correct': is_correct
+                            }).execute()
             
-            # Calculate score (percentage)
-            score = int((correct_count / total_questions) * 100) if total_questions > 0 else 0
+            # Get existing result or create a new one
+            result_response = supabase.table('exam_results') \
+                .select('id') \
+                .eq('exam_id', self.exam_id) \
+                .eq('student_username', self.main_window.current_user) \
+                .execute()
             
-            # Save the exam result
-            supabase.table('exam_results').insert({
-                'exam_id': self.exam_id,
-                'student_username': self.main_window.current_user,
-                'score': score,
-                'completed_at': datetime.datetime.now().isoformat()
-            }).execute()
+            if result_response.data:
+                # Update existing result with accurate score
+                result_id = result_response.data[0]['id']
+                supabase.table('exam_results') \
+                    .update({
+                        'score': correct_count,
+                        'completed_at': datetime.datetime.now().isoformat()
+                    }) \
+                    .eq('id', result_id) \
+                    .execute()
+            else:
+                # Create a new result entry
+                supabase.table('exam_results').insert({
+                    'exam_id': self.exam_id,
+                    'student_username': self.main_window.current_user,
+                    'score': correct_count,
+                    'completed_at': datetime.datetime.now().isoformat()
+                }).execute()
             
-            # Show result
+            # Show result with additional info about where to view results
             msg = QtWidgets.QMessageBox()
             msg.setWindowTitle("Exam Completed")
-            msg.setText(f"Exam submitted successfully!\nYour score: {score}%\nCorrect answers: {correct_count}/{total_questions}")
+            msg.setText(
+                f"Exam submitted successfully!\n\n"
+                f"Your score: {correct_count}/{total_questions}\n"
+                f"Correct answers: {correct_count}/{total_questions}\n\n"
+                f"You can view your full results by going to 'My Results' on the dashboard."
+            )
             msg.setIcon(QtWidgets.QMessageBox.Icon.Information)
             msg.exec()
             
