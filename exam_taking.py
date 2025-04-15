@@ -16,6 +16,12 @@ class ExamTaking(QtWidgets.QWidget):
         self.answers = {}
         self.exam_duration = 0  # Duration in minutes
         self.remaining_time = 0  # Remaining time in seconds
+        
+        # Initialize timer
+        self.timer = QtCore.QTimer()
+        self.timer.timeout.connect(self.update_timer)
+        self.timer.setInterval(1000)  # 1 second interval
+        
         self.initUI()
 
     def initUI(self):
@@ -137,11 +143,6 @@ class ExamTaking(QtWidgets.QWidget):
         # Fetch exam details including duration
         self.fetch_exam_details()
 
-        # Setup timer
-        self.timer = QtCore.QTimer(self)
-        self.timer.timeout.connect(self.update_timer)
-        self.timer.start(1000)  # Update every second
-
         # Fetch questions from the database
         self.fetch_questions()
 
@@ -182,6 +183,10 @@ class ExamTaking(QtWidgets.QWidget):
                     logging.debug(f"Exam duration set to {minutes}m {seconds}s")
                 
                 self.update_timer_display()
+                
+                # Start the timer
+                self.timer.start()
+                logging.debug("Exam timer started")
             else:
                 logging.warning(f"Exam with ID {self.exam_id} not found")
         except Exception as e:

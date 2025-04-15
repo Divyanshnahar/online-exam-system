@@ -36,6 +36,11 @@ class GazeDetection:
             self.is_face_detected = False
             self.is_facing_camera = False
             
+            # Violation tracking
+            self.violation_start_time = None
+            self.violation_duration = 0
+            self.violation_threshold = 10  # 10 seconds threshold for violations
+            
             # Constants
             self.GAZE_TIMEOUT = timeout_seconds
         except Exception as e:
@@ -155,15 +160,20 @@ class GazeDetection:
         current_time = time.time()
         status = ""
         is_timeout = False
+        violation_triggered = False
         
+        # Check for violations (camera not clear, face not detected, not facing camera)
         if not self.is_camera_clear:
             status = "Camera image is not clear"
+            violation_type = "unclear_camera"
         elif not self.is_face_detected:
             status = "Face not detected"
+            violation_type = "face_not_detected"
             # Reset timer when face is not detected
             self.last_facing_camera_time = current_time
         elif not self.is_facing_camera:
             status = "Not facing camera directly"
+            violation_type = "not_facing_camera"
             
             # Check if we've exceeded the timeout
             if current_time - self.last_facing_camera_time > self.GAZE_TIMEOUT and not self.warning_shown:
@@ -174,6 +184,33 @@ class GazeDetection:
             status = "Properly facing camera"
             self.last_facing_camera_time = current_time
             self.warning_shown = False
+            # Reset violation tracking when everything is fine
+            self.violation_start_time = None
+            self.violation_duration = 0
+            return {
+                "frame": processed_frame,
+                "status": status,
+                "is_timeout": is_timeout,
+                "is_camera_clear": self.is_camera_clear,
+                "is_face_detected": self.is_face_detected,
+                "is_facing_camera": self.is_facing_camera,
+                "violation_triggered": False,
+                "violation_type": None,
+                "violation_duration": 0
+            }
+        
+        # Track violation duration
+        if self.violation_start_time is None:
+            self.violation_start_time = current_time
+        
+        self.violation_duration = current_time - self.violation_start_time
+        
+        # Check if violation duration exceeds threshold
+        if self.violation_duration >= self.violation_threshold:
+            violation_triggered = True
+            # Reset for next violation
+            self.violation_start_time = None
+            self.violation_duration = 0
         
         return {
             "frame": processed_frame,
@@ -181,14 +218,18 @@ class GazeDetection:
             "is_timeout": is_timeout,
             "is_camera_clear": self.is_camera_clear,
             "is_face_detected": self.is_face_detected,
-            "is_facing_camera": self.is_facing_camera
+            "is_facing_camera": self.is_facing_camera,
+            "violation_triggered": violation_triggered,
+            "violation_type": violation_type,
+            "violation_duration": self.violation_duration
         }
 
     def reset(self):
         """Reset the gaze detection state"""
         self.last_facing_camera_time = time.time()
         self.warning_shown = False
-
+        self.violation_start_time = None
+        self.violation_duration = 0
 
 # Example usage with OpenCV window
 def main():
@@ -250,4 +291,4 @@ def main():
     cv2.destroyAllWindows()
 
 if __name__ == "__main__":
-    main() 
+    main()

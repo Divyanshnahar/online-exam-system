@@ -181,20 +181,6 @@ class ExamCreation(QtWidgets.QWidget):
                 border-left: 1px solid #ddd;
                 background: #f5f5f5;
             }
-            QTimeEdit QAbstractItemView {
-                color: black;
-                background-color: white;
-                selection-background-color: #6C63FF;
-                selection-color: white;
-            }
-            QTimeEdit QSpinBox {
-                color: black;
-                background-color: white;
-            }
-            QTimeEdit::drop-down {
-                background-color: #f5f5f5;
-                width: 30px;
-            }
         ''')
         self.start_time.setDisplayFormat("hh:mm:ss AP")
         self.start_time.setTime(QTime.currentTime())
@@ -224,7 +210,7 @@ class ExamCreation(QtWidgets.QWidget):
         def show_start_time_dialog():
             dialog = QtWidgets.QDialog(self)
             dialog.setWindowTitle("Select Start Time")
-            dialog.setStyleSheet("background-color: white; color: black;")
+            dialog.setStyleSheet("background-color: white;")
             dialog_layout = QtWidgets.QVBoxLayout(dialog)
             
             time_picker = QtWidgets.QTimeEdit()
@@ -242,52 +228,6 @@ class ExamCreation(QtWidgets.QWidget):
                     height: 20px;
                     border-left: 1px solid #ddd;
                     background: #f5f5f5;
-                    subcontrol-origin: border;
-                    subcontrol-position: top right;
-                    color: black;
-                    border: 1px solid #ccc;
-                }
-                QTimeEdit::up-button {
-                    subcontrol-position: top right;
-                }
-                QTimeEdit::down-button {
-                    subcontrol-position: bottom right;
-                }
-                QTimeEdit::up-arrow {
-                    width: 10px;
-                    height: 10px;
-                    image: url(data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgZmlsbD0iY3VycmVudENvbG9yIiBjbGFzcz0iYmkgYmktY2hldnJvbi11cCIgdmlld0JveD0iMCAwIDE2IDE2Ij48cGF0aCBmaWxsLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik03LjY0NiAxLjE0NmEuNS41IDAgMCAxIC43MDggMGw2IDZhLjUuNSAwIDAgMS0uNzA4LjcwOEw4IDIuMjA3IDIuMzU0IDcuODU0YS41LjUgMCAxIDEtLjcwOC0uNzA4bDYtNnoiLz48L3N2Zz4=);
-                }
-                QTimeEdit::down-arrow {
-                    width: 10px;
-                    height: 10px;
-                    image: url(data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgZmlsbD0iY3VycmVudENvbG9yIiBjbGFzcz0iYmkgYmktY2hldnJvbi1kb3duIiB2aWV3Qm94PSIwIDAgMTYgMTYiPjxwYXRoIGZpbGwtcnVsZT0iZXZlbm9kZCIgZD0iTTEuNjQ2IDQuNjQ2YS41LjUgMCAwIDEgLjcwOCAwTDggMTAuMjkzbDUuNjQ2LTUuNjQ3YS41LjUgMCAwIDEgLjcwOC43MDhsLTYgNmEuNS41IDAgMCAxLS43MDggMGwtNi02YS41LjUgMCAwIDEgMC0uNzA4eiIvPjwvc3ZnPg==);
-                }
-                /* Fix for dropdown elements */
-                QTimeEdit QAbstractItemView {
-                    color: black;
-                    background-color: white;
-                    selection-background-color: #6C63FF;
-                    selection-color: white;
-                }
-                /* Fix for spinbox elements */
-                QTimeEdit QSpinBox {
-                    color: black;
-                    background-color: white;
-                }
-                /* Fix for AM/PM selector */
-                QTimeEdit::drop-down {
-                    background-color: #f5f5f5;
-                    width: 30px;
-                }
-                /* Fix for all widgets inside the time edit */
-                QTimeEdit QWidget {
-                    color: black;
-                }
-                /* Fix for selected time */
-                QTimeEdit QWidget:item:selected {
-                    color: white;
-                    background-color: #6C63FF;
                 }
             ''')
             time_picker.setDisplayFormat("hh:mm:ss AP")
@@ -296,70 +236,6 @@ class ExamCreation(QtWidgets.QWidget):
             # Make the time picker larger and more prominent
             time_picker.setMinimumHeight(60)
             dialog_layout.addWidget(time_picker)
-            
-            # Add custom hour selector
-            hour_label = QtWidgets.QLabel("Hour:")
-            hour_label.setStyleSheet("color: black; font-size: 14px; margin-top: 10px;")
-            dialog_layout.addWidget(hour_label)
-            
-            hour_buttons = QtWidgets.QGridLayout()
-            for i in range(12):
-                hour = i + 1
-                hour_btn = QtWidgets.QPushButton(str(hour))
-                hour_btn.setFixedSize(40, 40)
-                hour_btn.setStyleSheet('''
-                    QPushButton {
-                        background-color: #f0f0f0;
-                        color: black;
-                        border: 1px solid #ddd;
-                        border-radius: 4px;
-                        font-size: 14px;
-                    }
-                    QPushButton:hover {
-                        background-color: #e0e0e0;
-                    }
-                    QPushButton:pressed {
-                        background-color: #6C63FF;
-                        color: white;
-                    }
-                ''')
-                # Use a lambda with default argument to capture the current value of hour
-                hour_btn.clicked.connect(lambda checked, h=hour: set_hour(h))
-                hour_buttons.addWidget(hour_btn, i // 6, i % 6)
-            
-            dialog_layout.addLayout(hour_buttons)
-            
-            # Add custom minute selector
-            minute_label = QtWidgets.QLabel("Minute:")
-            minute_label.setStyleSheet("color: black; font-size: 14px; margin-top: 10px;")
-            dialog_layout.addWidget(minute_label)
-            
-            minute_buttons = QtWidgets.QGridLayout()
-            minutes = [0, 15, 30, 45]
-            for i, minute in enumerate(minutes):
-                minute_btn = QtWidgets.QPushButton(f"{minute:02d}")
-                minute_btn.setFixedSize(60, 40)
-                minute_btn.setStyleSheet('''
-                    QPushButton {
-                        background-color: #f0f0f0;
-                        color: black;
-                        border: 1px solid #ddd;
-                        border-radius: 4px;
-                        font-size: 14px;
-                    }
-                    QPushButton:hover {
-                        background-color: #e0e0e0;
-                    }
-                    QPushButton:pressed {
-                        background-color: #6C63FF;
-                        color: white;
-                    }
-                ''')
-                # Use a lambda with default argument to capture the current value of minute
-                minute_btn.clicked.connect(lambda checked, m=minute: set_minute(m))
-                minute_buttons.addWidget(minute_btn, 0, i)
-            
-            dialog_layout.addLayout(minute_buttons)
             
             # Add AM/PM selector buttons for easier selection
             am_pm_layout = QtWidgets.QHBoxLayout()
@@ -370,66 +246,124 @@ class ExamCreation(QtWidgets.QWidget):
                 btn.setMinimumHeight(40)
                 btn.setStyleSheet('''
                     QPushButton {
-                        background-color: #f0f0f0;
-                        color: black;
+                        background-color: #f5f5f5;
                         border: 1px solid #ddd;
-                        border-radius: 4px;
-                        padding: 8px;
-                        font-size: 14px;
+                        border-radius: 5px;
+                        padding: 8px 15px;
+                        font-size: 16px;
+                        color: #333;
                     }
                     QPushButton:hover {
-                        background-color: #e0e0e0;
-                    }
-                    QPushButton:pressed {
                         background-color: #6C63FF;
                         color: white;
                     }
                 ''')
             
-            am_btn.clicked.connect(lambda: set_am_pm(True))
-            pm_btn.clicked.connect(lambda: set_am_pm(False))
+            am_btn.clicked.connect(lambda: set_am_pm(time_picker, True))
+            pm_btn.clicked.connect(lambda: set_am_pm(time_picker, False))
             
             am_pm_layout.addWidget(am_btn)
             am_pm_layout.addWidget(pm_btn)
             dialog_layout.addLayout(am_pm_layout)
             
-            # Helper functions to set time
-            def set_hour(hour):
-                current_time = time_picker.time()
-                is_pm = current_time.hour() >= 12
-                new_hour = hour if not is_pm else hour + 12
-                if new_hour == 24:  # Handle 12 PM case
-                    new_hour = 12
-                new_time = QtCore.QTime(new_hour, current_time.minute(), current_time.second())
-                time_picker.setTime(new_time)
-            
-            def set_minute(minute):
-                current_time = time_picker.time()
-                new_time = QtCore.QTime(current_time.hour(), minute, current_time.second())
-                time_picker.setTime(new_time)
-            
-            def set_am_pm(is_am):
-                current_time = time_picker.time()
+            # Helper function to set AM/PM
+            def set_am_pm(time_edit, is_am):
+                current_time = time_edit.time()
                 hour = current_time.hour()
+                
                 if is_am and hour >= 12:
-                    hour -= 12
+                    # Convert from PM to AM
+                    new_hour = hour - 12
+                    if new_hour == 0:
+                        new_hour = 0
                 elif not is_am and hour < 12:
-                    hour += 12
-                new_time = QtCore.QTime(hour, current_time.minute(), current_time.second())
-                time_picker.setTime(new_time)
+                    # Convert from AM to PM
+                    new_hour = hour + 12
+                else:
+                    # Already in correct AM/PM
+                    return
+                
+                time_edit.setTime(QTime(new_hour, current_time.minute(), current_time.second()))
             
-            # Add OK/Cancel buttons
+            # Add hour/minute quick set buttons
+            hour_layout = QtWidgets.QHBoxLayout()
+            hour_label = QtWidgets.QLabel("Hour:")
+            hour_label.setStyleSheet("font-size: 14px; color: #666;")
+            hour_layout.addWidget(hour_label)
+            
+            for hour in [9, 10, 11, 12, 1, 2, 3, 4, 5]:
+                hour_btn = QtWidgets.QPushButton(str(hour))
+                hour_btn.setMaximumWidth(40)
+                hour_btn.setStyleSheet('''
+                    QPushButton {
+                        background-color: #f5f5f5;
+                        border: 1px solid #ddd;
+                        border-radius: 5px;
+                        padding: 5px;
+                        font-size: 14px;
+                    }
+                    QPushButton:hover {
+                        background-color: #6C63FF;
+                        color: white;
+                    }
+                ''')
+                
+                # Convert display hour to 24-hour format if needed
+                display_hour = hour
+                if time_picker.time().hour() >= 12:  # PM
+                    if hour < 12:
+                        display_hour = hour + 12
+                else:  # AM
+                    if hour == 12:
+                        display_hour = 0
+                
+                hour_btn.clicked.connect(lambda _, h=display_hour: time_picker.setTime(
+                    QTime(h, time_picker.time().minute(), time_picker.time().second())
+                ))
+                hour_layout.addWidget(hour_btn)
+            
+            dialog_layout.addLayout(hour_layout)
+            
+            minute_layout = QtWidgets.QHBoxLayout()
+            minute_label = QtWidgets.QLabel("Minute:")
+            minute_label.setStyleSheet("font-size: 14px; color: #666;")
+            minute_layout.addWidget(minute_label)
+            
+            for minute in [0, 15, 30, 45]:
+                minute_btn = QtWidgets.QPushButton(f"{minute:02d}")
+                minute_btn.setMaximumWidth(40)
+                minute_btn.setStyleSheet('''
+                    QPushButton {
+                        background-color: #f5f5f5;
+                        border: 1px solid #ddd;
+                        border-radius: 5px;
+                        padding: 5px;
+                        font-size: 14px;
+                    }
+                    QPushButton:hover {
+                        background-color: #6C63FF;
+                        color: white;
+                    }
+                ''')
+                minute_btn.clicked.connect(lambda _, m=minute: time_picker.setTime(
+                    QTime(time_picker.time().hour(), m, time_picker.time().second())
+                ))
+                minute_layout.addWidget(minute_btn)
+            
+            dialog_layout.addLayout(minute_layout)
+            
             buttons = QtWidgets.QDialogButtonBox(
                 QtWidgets.QDialogButtonBox.StandardButton.Ok | 
                 QtWidgets.QDialogButtonBox.StandardButton.Cancel
             )
-            buttons.accepted.connect(lambda: [self.start_time.setTime(time_picker.time()), dialog.accept()])
+            buttons.accepted.connect(lambda: [self.start_time.setTime(time_picker.time()), self.update_end_time(), dialog.accept()])
             buttons.rejected.connect(dialog.reject)
             buttons.setStyleSheet('''
                 QPushButton {
                     padding: 8px 16px;
-                    border-radius: 4px;
                     font-size: 14px;
+                    border-radius: 4px;
+                    min-width: 80px;
                 }
                 QPushButton[text="OK"] {
                     background-color: #6C63FF;
@@ -438,16 +372,19 @@ class ExamCreation(QtWidgets.QWidget):
                 }
                 QPushButton[text="Cancel"] {
                     background-color: white;
-                    color: black;
-                    border: 1px solid #ddd;
+                    color: #333;
+                    border: 1px solid #ccc;
                 }
-                QPushButton:hover {
-                    opacity: 0.8;
+                QPushButton[text="OK"]:hover {
+                    background-color: #5952cc;
+                }
+                QPushButton[text="Cancel"]:hover {
+                    background-color: #f0f0f0;
                 }
             ''')
-            
             dialog_layout.addWidget(buttons)
             
+            dialog.setMinimumSize(400, 300)
             dialog.exec()
         
         start_time_btn.clicked.connect(show_start_time_dialog)
@@ -468,20 +405,6 @@ class ExamCreation(QtWidgets.QWidget):
                 width: 16px;
                 border-left: 1px solid #ddd;
                 background: #f5f5f5;
-            }
-            QTimeEdit QAbstractItemView {
-                color: black;
-                background-color: white;
-                selection-background-color: #6C63FF;
-                selection-color: white;
-            }
-            QTimeEdit QSpinBox {
-                color: black;
-                background-color: white;
-            }
-            QTimeEdit::drop-down {
-                background-color: #f5f5f5;
-                width: 30px;
             }
         ''')
         self.end_time.setDisplayFormat("hh:mm:ss AP")
@@ -511,7 +434,7 @@ class ExamCreation(QtWidgets.QWidget):
         def show_end_time_dialog():
             dialog = QtWidgets.QDialog(self)
             dialog.setWindowTitle("Select End Time")
-            dialog.setStyleSheet("background-color: white; color: black;")
+            dialog.setStyleSheet("background-color: white;")
             dialog_layout = QtWidgets.QVBoxLayout(dialog)
             
             time_picker = QtWidgets.QTimeEdit()
@@ -529,52 +452,6 @@ class ExamCreation(QtWidgets.QWidget):
                     height: 20px;
                     border-left: 1px solid #ddd;
                     background: #f5f5f5;
-                    subcontrol-origin: border;
-                    subcontrol-position: top right;
-                    color: black;
-                    border: 1px solid #ccc;
-                }
-                QTimeEdit::up-button {
-                    subcontrol-position: top right;
-                }
-                QTimeEdit::down-button {
-                    subcontrol-position: bottom right;
-                }
-                QTimeEdit::up-arrow {
-                    width: 10px;
-                    height: 10px;
-                    image: url(data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgZmlsbD0iY3VycmVudENvbG9yIiBjbGFzcz0iYmkgYmktY2hldnJvbi11cCIgdmlld0JveD0iMCAwIDE2IDE2Ij48cGF0aCBmaWxsLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik03LjY0NiAxLjE0NmEuNS41IDAgMCAxIC43MDggMGw2IDZhLjUuNSAwIDAgMS0uNzA4LjcwOEw4IDIuMjA3IDIuMzU0IDcuODU0YS41LjUgMCAxIDEtLjcwOC0uNzA4bDYtNnoiLz48L3N2Zz4=);
-                }
-                QTimeEdit::down-arrow {
-                    width: 10px;
-                    height: 10px;
-                    image: url(data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgZmlsbD0iY3VycmVudENvbG9yIiBjbGFzcz0iYmkgYmktY2hldnJvbi1kb3duIiB2aWV3Qm94PSIwIDAgMTYgMTYiPjxwYXRoIGZpbGwtcnVsZT0iZXZlbm9kZCIgZD0iTTEuNjQ2IDQuNjQ2YS41LjUgMCAwIDEgLjcwOCAwTDggMTAuMjkzbDUuNjQ2LTUuNjQ3YS41LjUgMCAwIDEgLjcwOC43MDhsLTYgNmEuNS41IDAgMCAxLS43MDggMGwtNi02YS41LjUgMCAwIDEgMC0uNzA4eiIvPjwvc3ZnPg==);
-                }
-                /* Fix for dropdown elements */
-                QTimeEdit QAbstractItemView {
-                    color: black;
-                    background-color: white;
-                    selection-background-color: #6C63FF;
-                    selection-color: white;
-                }
-                /* Fix for spinbox elements */
-                QTimeEdit QSpinBox {
-                    color: black;
-                    background-color: white;
-                }
-                /* Fix for AM/PM selector */
-                QTimeEdit::drop-down {
-                    background-color: #f5f5f5;
-                    width: 30px;
-                }
-                /* Fix for all widgets inside the time edit */
-                QTimeEdit QWidget {
-                    color: black;
-                }
-                /* Fix for selected time */
-                QTimeEdit QWidget:item:selected {
-                    color: white;
-                    background-color: #6C63FF;
                 }
             ''')
             time_picker.setDisplayFormat("hh:mm:ss AP")
@@ -583,70 +460,6 @@ class ExamCreation(QtWidgets.QWidget):
             # Make the time picker larger and more prominent
             time_picker.setMinimumHeight(60)
             dialog_layout.addWidget(time_picker)
-            
-            # Add custom hour selector
-            hour_label = QtWidgets.QLabel("Hour:")
-            hour_label.setStyleSheet("color: black; font-size: 14px; margin-top: 10px;")
-            dialog_layout.addWidget(hour_label)
-            
-            hour_buttons = QtWidgets.QGridLayout()
-            for i in range(12):
-                hour = i + 1
-                hour_btn = QtWidgets.QPushButton(str(hour))
-                hour_btn.setFixedSize(40, 40)
-                hour_btn.setStyleSheet('''
-                    QPushButton {
-                        background-color: #f0f0f0;
-                        color: black;
-                        border: 1px solid #ddd;
-                        border-radius: 4px;
-                        font-size: 14px;
-                    }
-                    QPushButton:hover {
-                        background-color: #e0e0e0;
-                    }
-                    QPushButton:pressed {
-                        background-color: #6C63FF;
-                        color: white;
-                    }
-                ''')
-                # Use a lambda with default argument to capture the current value of hour
-                hour_btn.clicked.connect(lambda checked, h=hour: set_hour(h))
-                hour_buttons.addWidget(hour_btn, i // 6, i % 6)
-            
-            dialog_layout.addLayout(hour_buttons)
-            
-            # Add custom minute selector
-            minute_label = QtWidgets.QLabel("Minute:")
-            minute_label.setStyleSheet("color: black; font-size: 14px; margin-top: 10px;")
-            dialog_layout.addWidget(minute_label)
-            
-            minute_buttons = QtWidgets.QGridLayout()
-            minutes = [0, 15, 30, 45]
-            for i, minute in enumerate(minutes):
-                minute_btn = QtWidgets.QPushButton(f"{minute:02d}")
-                minute_btn.setFixedSize(60, 40)
-                minute_btn.setStyleSheet('''
-                    QPushButton {
-                        background-color: #f0f0f0;
-                        color: black;
-                        border: 1px solid #ddd;
-                        border-radius: 4px;
-                        font-size: 14px;
-                    }
-                    QPushButton:hover {
-                        background-color: #e0e0e0;
-                    }
-                    QPushButton:pressed {
-                        background-color: #6C63FF;
-                        color: white;
-                    }
-                ''')
-                # Use a lambda with default argument to capture the current value of minute
-                minute_btn.clicked.connect(lambda checked, m=minute: set_minute(m))
-                minute_buttons.addWidget(minute_btn, 0, i)
-            
-            dialog_layout.addLayout(minute_buttons)
             
             # Add AM/PM selector buttons for easier selection
             am_pm_layout = QtWidgets.QHBoxLayout()
@@ -657,55 +470,145 @@ class ExamCreation(QtWidgets.QWidget):
                 btn.setMinimumHeight(40)
                 btn.setStyleSheet('''
                     QPushButton {
-                        background-color: #f0f0f0;
-                        color: black;
+                        background-color: #f5f5f5;
                         border: 1px solid #ddd;
-                        border-radius: 4px;
-                        padding: 8px;
-                        font-size: 14px;
+                        border-radius: 5px;
+                        padding: 8px 15px;
+                        font-size: 16px;
+                        color: #333;
                     }
                     QPushButton:hover {
-                        background-color: #e0e0e0;
-                    }
-                    QPushButton:pressed {
                         background-color: #6C63FF;
                         color: white;
                     }
                 ''')
             
-            am_btn.clicked.connect(lambda: set_am_pm(True))
-            pm_btn.clicked.connect(lambda: set_am_pm(False))
+            am_btn.clicked.connect(lambda: set_am_pm(time_picker, True))
+            pm_btn.clicked.connect(lambda: set_am_pm(time_picker, False))
             
             am_pm_layout.addWidget(am_btn)
             am_pm_layout.addWidget(pm_btn)
             dialog_layout.addLayout(am_pm_layout)
             
-            # Helper functions to set time
-            def set_hour(hour):
-                current_time = time_picker.time()
-                is_pm = current_time.hour() >= 12
-                new_hour = hour if not is_pm else hour + 12
-                if new_hour == 24:  # Handle 12 PM case
-                    new_hour = 12
-                new_time = QtCore.QTime(new_hour, current_time.minute(), current_time.second())
-                time_picker.setTime(new_time)
-            
-            def set_minute(minute):
-                current_time = time_picker.time()
-                new_time = QtCore.QTime(current_time.hour(), minute, current_time.second())
-                time_picker.setTime(new_time)
-            
-            def set_am_pm(is_am):
-                current_time = time_picker.time()
+            # Helper function to set AM/PM
+            def set_am_pm(time_edit, is_am):
+                current_time = time_edit.time()
                 hour = current_time.hour()
+                
                 if is_am and hour >= 12:
-                    hour -= 12
+                    # Convert from PM to AM
+                    new_hour = hour - 12
+                    if new_hour == 0:
+                        new_hour = 0
                 elif not is_am and hour < 12:
-                    hour += 12
-                new_time = QtCore.QTime(hour, current_time.minute(), current_time.second())
-                time_picker.setTime(new_time)
+                    # Convert from AM to PM
+                    new_hour = hour + 12
+                else:
+                    # Already in correct AM/PM
+                    return
+                
+                time_edit.setTime(QTime(new_hour, current_time.minute(), current_time.second()))
             
-            # Add OK/Cancel buttons
+            # Add hour/minute quick set buttons
+            hour_layout = QtWidgets.QHBoxLayout()
+            hour_label = QtWidgets.QLabel("Hour:")
+            hour_label.setStyleSheet("font-size: 14px; color: #666;")
+            hour_layout.addWidget(hour_label)
+            
+            for hour in [9, 10, 11, 12, 1, 2, 3, 4, 5]:
+                hour_btn = QtWidgets.QPushButton(str(hour))
+                hour_btn.setMaximumWidth(40)
+                hour_btn.setStyleSheet('''
+                    QPushButton {
+                        background-color: #f5f5f5;
+                        border: 1px solid #ddd;
+                        border-radius: 5px;
+                        padding: 5px;
+                        font-size: 14px;
+                    }
+                    QPushButton:hover {
+                        background-color: #6C63FF;
+                        color: white;
+                    }
+                ''')
+                
+                # Convert display hour to 24-hour format if needed
+                display_hour = hour
+                if time_picker.time().hour() >= 12:  # PM
+                    if hour < 12:
+                        display_hour = hour + 12
+                else:  # AM
+                    if hour == 12:
+                        display_hour = 0
+                
+                hour_btn.clicked.connect(lambda _, h=display_hour: time_picker.setTime(
+                    QTime(h, time_picker.time().minute(), time_picker.time().second())
+                ))
+                hour_layout.addWidget(hour_btn)
+            
+            dialog_layout.addLayout(hour_layout)
+            
+            minute_layout = QtWidgets.QHBoxLayout()
+            minute_label = QtWidgets.QLabel("Minute:")
+            minute_label.setStyleSheet("font-size: 14px; color: #666;")
+            minute_layout.addWidget(minute_label)
+            
+            for minute in [0, 15, 30, 45]:
+                minute_btn = QtWidgets.QPushButton(f"{minute:02d}")
+                minute_btn.setMaximumWidth(40)
+                minute_btn.setStyleSheet('''
+                    QPushButton {
+                        background-color: #f5f5f5;
+                        border: 1px solid #ddd;
+                        border-radius: 5px;
+                        padding: 5px;
+                        font-size: 14px;
+                    }
+                    QPushButton:hover {
+                        background-color: #6C63FF;
+                        color: white;
+                    }
+                ''')
+                minute_btn.clicked.connect(lambda _, m=minute: time_picker.setTime(
+                    QTime(time_picker.time().hour(), m, time_picker.time().second())
+                ))
+                minute_layout.addWidget(minute_btn)
+            
+            dialog_layout.addLayout(minute_layout)
+            
+            # Add duration calculation buttons
+            duration_label = QtWidgets.QLabel("Quick Duration:")
+            duration_label.setStyleSheet("font-size: 14px; color: #666; margin-top: 10px;")
+            dialog_layout.addWidget(duration_label)
+            
+            duration_layout = QtWidgets.QHBoxLayout()
+            durations = ["15 min", "30 min", "1 hour", "1.5 hours", "2 hours"]
+            duration_secs = [15*60, 30*60, 60*60, 90*60, 120*60]
+            
+            for i, (label, secs) in enumerate(zip(durations, duration_secs)):
+                duration_btn = QtWidgets.QPushButton(label)
+                duration_btn.setStyleSheet('''
+                    QPushButton {
+                        background-color: #f0f0f0;
+                        border: 1px solid #ddd;
+                        border-radius: 5px;
+                        padding: 8px;
+                        font-size: 13px;
+                    }
+                    QPushButton:hover {
+                        background-color: #6C63FF;
+                        color: white;
+                    }
+                ''')
+                
+                # Set end time based on start time + duration
+                duration_btn.clicked.connect(lambda _, s=secs: time_picker.setTime(
+                    QTime.fromMSecsSinceStartOfDay((self.start_time.time().msecsSinceStartOfDay() + s * 1000) % 86400000)
+                ))
+                duration_layout.addWidget(duration_btn)
+            
+            dialog_layout.addLayout(duration_layout)
+            
             buttons = QtWidgets.QDialogButtonBox(
                 QtWidgets.QDialogButtonBox.StandardButton.Ok | 
                 QtWidgets.QDialogButtonBox.StandardButton.Cancel
@@ -715,8 +618,9 @@ class ExamCreation(QtWidgets.QWidget):
             buttons.setStyleSheet('''
                 QPushButton {
                     padding: 8px 16px;
-                    border-radius: 4px;
                     font-size: 14px;
+                    border-radius: 4px;
+                    min-width: 80px;
                 }
                 QPushButton[text="OK"] {
                     background-color: #6C63FF;
@@ -725,16 +629,19 @@ class ExamCreation(QtWidgets.QWidget):
                 }
                 QPushButton[text="Cancel"] {
                     background-color: white;
-                    color: black;
-                    border: 1px solid #ddd;
+                    color: #333;
+                    border: 1px solid #ccc;
                 }
-                QPushButton:hover {
-                    opacity: 0.8;
+                QPushButton[text="OK"]:hover {
+                    background-color: #5952cc;
+                }
+                QPushButton[text="Cancel"]:hover {
+                    background-color: #f0f0f0;
                 }
             ''')
-            
             dialog_layout.addWidget(buttons)
             
+            dialog.setMinimumSize(450, 400)
             dialog.exec()
         
         end_time_btn.clicked.connect(show_end_time_dialog)
@@ -766,7 +673,7 @@ class ExamCreation(QtWidgets.QWidget):
             # Create a dialog to ensure the calendar is fully visible
             dialog = QtWidgets.QDialog(self)
             dialog.setWindowTitle("Select Date")
-            dialog.setStyleSheet("background-color: white; color: black;")
+            dialog.setStyleSheet("background-color: white;")
             dialog_layout = QtWidgets.QVBoxLayout(dialog)
             
             calendar = QtWidgets.QCalendarWidget()
@@ -794,14 +701,10 @@ class ExamCreation(QtWidgets.QWidget):
                     width: 150px;
                     left: 20px;
                     font-size: 14px;
-                    color: black;
-                    background-color: white;
                 }
                 QCalendarWidget QSpinBox {
                     font-size: 14px;
                     width: 60px;
-                    color: black;
-                    background-color: white;
                 }
                 QCalendarWidget QAbstractItemView:enabled {
                     font-size: 14px;
@@ -820,7 +723,6 @@ class ExamCreation(QtWidgets.QWidget):
                     qproperty-icon: none;
                     min-width: 40px;
                     font-size: 18px;
-                    color: #6C63FF;
                 }
                 QCalendarWidget QWidget#qt_calendar_prevmonth {
                     qproperty-text: "<";
@@ -837,29 +739,6 @@ class ExamCreation(QtWidgets.QWidget):
                 }
                 QCalendarWidget QTableView {
                     alternate-background-color: #f5f5f5;
-                    color: black;
-                }
-                /* Fix for weekday headers */
-                QCalendarWidget QTableView QHeaderView {
-                    color: black;
-                }
-                /* Fix for day numbers */
-                QCalendarWidget QTableView QTableCornerButton::section {
-                    color: black;
-                    background-color: white;
-                }
-                /* Fix for selected date */
-                QCalendarWidget QTableView:item:selected {
-                    color: white;
-                    background-color: #6C63FF;
-                }
-                /* Fix for today's date */
-                QCalendarWidget QTableView:item:hover {
-                    background-color: #e0e0ff;
-                }
-                /* Fix for dates in other months */
-                QCalendarWidget QTableView:disabled {
-                    color: #aaa;
                 }
             ''')
             
@@ -885,7 +764,7 @@ class ExamCreation(QtWidgets.QWidget):
                 }
                 QPushButton[text="Cancel"] {
                     background-color: white;
-                    color: black;
+                    color: #333;
                     border: 1px solid #ccc;
                 }
                 QPushButton[text="OK"]:hover {

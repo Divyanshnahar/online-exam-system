@@ -3,6 +3,7 @@ from exam_taking import ExamTaking
 import logging
 import threading
 import time
+import datetime
 
 # Initialize global variable
 GAZE_DETECTION_AVAILABLE = False
@@ -39,7 +40,7 @@ class ProctoredExamTaking(QtWidgets.QWidget):
         self.exam_id = exam_id
         self.is_fullscreen = False
         self.violations_count = 0
-        self.MAX_VIOLATIONS = 5
+        self.MAX_VIOLATIONS = 3
         self.last_violation_time = 0
         self.VIOLATION_COOLDOWN = 10  # seconds between violation counts
         
@@ -100,56 +101,54 @@ class ProctoredExamTaking(QtWidgets.QWidget):
                     QWidget {
                         background-color: #333;
                         color: white;
-                        border-bottom: 1px solid #555;
                         padding: 5px;
+                    }
+                    QLabel {
+                        color: white;
                     }
                 ''')
                 status_layout = QtWidgets.QHBoxLayout(self.status_bar)
                 status_layout.setContentsMargins(10, 5, 10, 5)
                 
-                # Camera status icon
-                self.camera_status_icon = QtWidgets.QLabel("🎥")
-                self.camera_status_icon.setStyleSheet("font-size: 16px;")
-                status_layout.addWidget(self.camera_status_icon)
+                # Camera preview
+                self.camera_preview = QtWidgets.QLabel("Camera initializing...")
+                self.camera_preview.setFixedSize(120, 90)
+                self.camera_preview.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+                self.camera_preview.setStyleSheet("border: 1px solid #666; background-color: #222;")
+                status_layout.addWidget(self.camera_preview)
                 
-                # Gaze status text
-                self.gaze_status_text = QtWidgets.QLabel("Checking gaze status...")
-                self.gaze_status_text.setStyleSheet("font-size: 14px;")
-                status_layout.addWidget(self.gaze_status_text)
+                # Status information
+                status_info = QtWidgets.QVBoxLayout()
                 
+                self.status_label = QtWidgets.QLabel("Status: Initializing...")
+                self.status_label.setStyleSheet("font-weight: bold;")
+                status_info.addWidget(self.status_label)
+                
+                self.gaze_status_text = QtWidgets.QLabel("Please look at the camera")
+                self.gaze_status_text.setStyleSheet("font-size: 14px; color: #00FF00;")
+                status_info.addWidget(self.gaze_status_text)
+                
+                # Add violation counter
+                self.violations_label = QtWidgets.QLabel(f"Violations: 0/{self.MAX_VIOLATIONS}")
+                self.violations_label.setStyleSheet("font-weight: bold; color: white;")
+                status_info.addWidget(self.violations_label)
+                
+                # Add violation timer
+                self.violation_timer_label = QtWidgets.QLabel("Violation timer: 0s")
+                self.violation_timer_label.setStyleSheet("color: white;")
+                status_info.addWidget(self.violation_timer_label)
+                
+                status_layout.addLayout(status_info)
                 status_layout.addStretch()
                 
-                # Violations counter
-                self.violations_label = QtWidgets.QLabel(f"Violations: 0/{self.MAX_VIOLATIONS}")
-                self.violations_label.setStyleSheet("font-size: 14px;")
-                status_layout.addWidget(self.violations_label)
+                # Add fullscreen warning
+                self.fullscreen_warning = QtWidgets.QLabel("⚠️ Stay in fullscreen mode")
+                self.fullscreen_warning.setStyleSheet("color: orange; font-weight: bold;")
+                self.fullscreen_warning.hide()  # Hidden by default
+                status_layout.addWidget(self.fullscreen_warning)
                 
+                # Add status bar to main layout
                 self.content_layout.addWidget(self.status_bar)
-                
-                # Add camera preview
-                camera_preview_container = QtWidgets.QWidget()
-                camera_preview_layout = QtWidgets.QHBoxLayout(camera_preview_container)
-                camera_preview_layout.setContentsMargins(0, 10, 0, 10)
-                
-                # Create spacers for centering
-                camera_preview_layout.addStretch()
-                
-                # Create the camera preview label
-                self.camera_preview = QtWidgets.QLabel("Camera Preview")
-                self.camera_preview.setFixedSize(200, 150)
-                self.camera_preview.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-                self.camera_preview.setStyleSheet('''
-                    border: 2px solid #6C63FF;
-                    border-radius: 5px;
-                    background-color: #111;
-                    color: #AAA;
-                ''')
-                camera_preview_layout.addWidget(self.camera_preview)
-                
-                # Create spacers for centering
-                camera_preview_layout.addStretch()
-                
-                self.content_layout.addWidget(camera_preview_container)
             
             # Create a container for the exam content
             self.exam_container = QtWidgets.QWidget()
@@ -344,32 +343,53 @@ class ProctoredExamTaking(QtWidgets.QWidget):
         if not GAZE_DETECTION_AVAILABLE:
             return
             
-        status = result["status"]
+        # Update the status label
+        status_text = result["status"]
+        status_color = "red"
         
-        if not result["is_camera_clear"]:
-            self.camera_status_icon.setText("🚫")
-            self.camera_status_icon.setStyleSheet("font-size: 16px; color: red;")
-        elif not result["is_face_detected"]:
-            self.camera_status_icon.setText("👤")
-            self.camera_status_icon.setStyleSheet("font-size: 16px; color: yellow;")
-        elif result["is_facing_camera"]:
-            self.camera_status_icon.setText("✅")
-            self.camera_status_icon.setStyleSheet("font-size: 16px; color: #00FF00;")
-        else:
-            self.camera_status_icon.setText("⚠️")
-            self.camera_status_icon.setStyleSheet("font-size: 16px; color: orange;")
+        if result["is_facing_camera"] and result["is_camera_clear"] and result["is_face_detected"]:
+            status_text = "Properly facing camera"
+            status_color = "green"
         
-        self.gaze_status_text.setText(status)
+        self.status_label.setText(f"Status: {status_text}")
+        self.status_label.setStyleSheet(f"color: {status_color};")
         
-        # Set color of status text based on status
-        if "not clear" in status.lower():
-            self.gaze_status_text.setStyleSheet("font-size: 14px; color: red;")
-        elif "not detected" in status.lower():
-            self.gaze_status_text.setStyleSheet("font-size: 14px; color: yellow;")
-        elif "not facing" in status.lower():
-            self.gaze_status_text.setStyleSheet("font-size: 14px; color: orange;")
-        else:
-            self.gaze_status_text.setStyleSheet("font-size: 14px; color: #00FF00;")
+        # Update violation timer if applicable
+        if "violation_duration" in result:
+            violation_seconds = int(result["violation_duration"])
+            self.violation_timer_label.setText(f"Violation timer: {violation_seconds}s")
+            
+            # Change color based on how close to violation threshold
+            if violation_seconds > 7:  # Close to the 10s threshold
+                self.violation_timer_label.setStyleSheet("color: red; font-weight: bold;")
+            elif violation_seconds > 5:
+                self.violation_timer_label.setStyleSheet("color: orange; font-weight: bold;")
+            elif violation_seconds > 0:
+                self.violation_timer_label.setStyleSheet("color: yellow;")
+            else:
+                self.violation_timer_label.setStyleSheet("color: white;")
+        
+        # Check for violations
+        if result.get("violation_triggered", False):
+            violation_type = result.get("violation_type", "unknown")
+            reason = ""
+            
+            if violation_type == "unclear_camera":
+                reason = "Camera image is not clear"
+            elif violation_type == "face_not_detected":
+                reason = "Face not detected"
+            elif violation_type == "not_facing_camera":
+                reason = "Not facing camera directly"
+            else:
+                reason = "Unknown violation"
+                
+            self.record_violation(reason)
+        
+        # Check for timeout
+        if result["is_timeout"]:
+            # This is a long-term timeout (e.g., not facing camera for 60 seconds)
+            # We may want to handle this differently than the 10-second violations
+            pass
     
     def record_violation(self, reason):
         """Record a proctoring violation"""
@@ -379,22 +399,29 @@ class ProctoredExamTaking(QtWidgets.QWidget):
             
         current_time = time.time()
         
-        # Only count violations if enough time has passed since the last one
-        if current_time - self.last_violation_time > self.VIOLATION_COOLDOWN:
-            self.violations_count += 1
-            self.last_violation_time = current_time
+        # Check if we're still in cooldown period
+        if current_time - self.last_violation_time < self.VIOLATION_COOLDOWN:
+            return
             
-            # Update the violations label
-            self.violations_label.setText(f"Violations: {self.violations_count}/{self.MAX_VIOLATIONS}")
+        # Record the violation
+        self.violations_count += 1
+        self.last_violation_time = current_time
+        
+        # Update violation counter in UI
+        self.violations_label.setText(f"Violations: {self.violations_count}/{self.MAX_VIOLATIONS}")
+        if self.violations_count >= self.MAX_VIOLATIONS - 1:  # Warning color when close to max
+            self.violations_label.setStyleSheet("color: orange; font-weight: bold;")
+        if self.violations_count >= self.MAX_VIOLATIONS:
+            self.violations_label.setStyleSheet("color: red; font-weight: bold;")
             
-            # Log the violation
-            logging.warning(f"Proctoring violation recorded: {reason}. Count: {self.violations_count}/{self.MAX_VIOLATIONS}")
-            
-            if self.violations_count >= self.MAX_VIOLATIONS:
-                self.handle_max_violations()
-            else:
-                # Show a warning
-                self.show_violation_warning(reason)
+        # Log the violation
+        logging.warning(f"Proctoring violation recorded: {reason}. Count: {self.violations_count}/{self.MAX_VIOLATIONS}")
+        
+        if self.violations_count >= self.MAX_VIOLATIONS:
+            self.handle_max_violations()
+        else:
+            # Show a warning
+            self.show_violation_warning(reason)
     
     def show_violation_warning(self, reason):
         """Show a warning about a proctoring violation"""
@@ -439,8 +466,8 @@ class ProctoredExamTaking(QtWidgets.QWidget):
         self.submit_zero_score()
         
         # Return to the dashboard
-        from dashboard import Dashboard
-        dashboard = Dashboard(self.main_window)
+        from student_dashboard import StudentDashboard
+        dashboard = StudentDashboard(self.main_window)
         self.main_window.stackedWidget.addWidget(dashboard)
         self.main_window.stackedWidget.setCurrentWidget(dashboard)
     
@@ -453,14 +480,12 @@ class ProctoredExamTaking(QtWidgets.QWidget):
             # Get the current user
             student_username = self.main_window.current_user
             
-            # Submit a zero score
+            # Submit a zero score using the existing schema
             response = supabase.table('exam_results').insert({
                 'exam_id': self.exam_id,
                 'student_username': student_username,
                 'score': 0,
-                'max_score': 100,  # Assuming max score is 100
-                'submission_time': time.strftime('%Y-%m-%d %H:%M:%S'),
-                'violation_termination': True  # Flag to indicate termination due to violations
+                'completed_at': datetime.datetime.now().isoformat()
             }).execute()
             
             logging.info(f"Submitted zero score for {student_username} due to proctoring violations")
